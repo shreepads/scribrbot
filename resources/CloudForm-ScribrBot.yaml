@@ -8,9 +8,9 @@ Parameters:
   TelegramBotName: 
     Description: Name of the Telegram Bot (default TestScribrBot).
     Type: String
-    MaxLength : 10
+    MaxLength : 30
     MinLength : 6
-    ConstraintDescription : Required field (6-10 chars)
+    ConstraintDescription : Required field (6-30 chars)
     Default: TestScribrBot
   TelegramBotToken:
     Description : Telegram assigned token for the bot
@@ -249,6 +249,31 @@ Resources:
           IntegrationResponses:
              -
               StatusCode: 200
+
+  ScribrBotApiGatewayCloudWatchRole: 
+     Type: AWS::IAM::Role
+     Properties: 
+      AssumeRolePolicyDocument: 
+       Version: 2012-10-17
+       Statement: 
+        - Effect: Allow
+          Principal: 
+           Service: 
+            - apigateway.amazonaws.com
+          Action: sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns: 
+       - "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+
+
+  ScribrBotRESTApiAccount: 
+      Type: AWS::ApiGateway::Account
+      Properties: 
+        CloudWatchRoleArn: 
+         "Fn::GetAtt": 
+          - ScribrBotApiGatewayCloudWatchRole
+          - Arn
+
              
   ScribrBotRESTApiDeployment: 
       DependsOn: ScribrBotTelegramMessagePostMethod
