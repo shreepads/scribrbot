@@ -20,10 +20,8 @@ with Telegram
 * Basic handler that stores the message data in a table
 
 ### sprint1 branch
-* Validate Telegram token and derive botname using it instead of from
-command line input
 * Discard all messages other than those with hashtags
-* Provide 'summarise' command to summarise messages by hashtag
+* Provide summarise command `\summ` to summarise messages by hashtag
 
 
 ## How to Deploy
