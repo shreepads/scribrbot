@@ -32,20 +32,6 @@ Parameters:
     MinLength : 6
     ConstraintDescription : Required field (6-100 chars)
     Default : scribrbot.zip
-  RESTApiSpecS3Bucket:
-    Description : S3 bucket name where the REST API spec is stored (default scribrbot) 
-    Type : String
-    MaxLength : 100
-    MinLength : 6
-    ConstraintDescription : Required field (6-100 chars)
-    Default : scribrbot
-  RESTApiSpecS3Key : 
-    Description : S3 key name that contains the REST API spec in swagger YAML format (default scribrbotapi.yml)
-    Type : String
-    MaxLength : 100
-    MinLength : 6
-    ConstraintDescription : Required field (6-100 chars)
-    Default : scribrbotapi.yml
   APIGatewayLimit :
     Description : Overall limit on the number of requests to be handled by the API Gateway in a second (default 1)
     Type : Number
@@ -144,6 +130,26 @@ Resources:
            - 
              !Ref LambdaFunctionRole     
 
+  S3PutObjectPolicy:
+      Type: AWS::IAM::Policy
+      Properties: 
+        PolicyName: S3PutObjectPolicy
+        PolicyDocument: 
+          Version: 2012-10-17
+          Statement: 
+             - 
+              Effect: Allow
+              Action: 
+                  - s3:PutObject
+                  - s3:PutObjectAcl
+                  - s3:PutObjectTagging
+              Resource:
+                 !Join [ "", [ "arn:aws:s3:::", !Ref LambdaFunctionS3Bucket, "/*" ] ] 
+        Roles: 
+           - 
+             !Ref LambdaFunctionRole   
+  
+  
   ScribrBotLambdaFunction: 
       Type: AWS::Lambda::Function
       Properties: 
@@ -162,6 +168,7 @@ Resources:
           Variables:
             TelegramBotToken : !Ref TelegramBotToken
             MessageTableName : !Ref ScribrBotMessagesTable
+            S3BucketName     : !Ref LambdaFunctionS3Bucket
 
   ScribrBotRESTApi: 
       Type: AWS::ApiGateway::RestApi
