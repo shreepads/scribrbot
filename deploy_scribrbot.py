@@ -6,7 +6,7 @@
 """
 deploy_scribrbot
 ~~~~~~~~~~~~~~~~~~
-This module deploys ScribrBot on AWS and registers the corresponding webhooks.
+This module deploys ScribrBot on AWS and registers the corresponding webhook.
 It uses a CloudFormation template (stored in resources/) and AWS credentials
 of an IAM user with the appropriate permissions.
 The CloudFormation template creates the API Gateway, Lambda Function and 
