@@ -29,8 +29,10 @@ command line input
 ## How to Deploy
 
 * Install Python 2.7 (or above), virtualenv, pip and git
-* Setup AWS credentials of an IAM user that has access to the necessary
-AWS services as described [here](http://boto3.readthedocs.io/en/latest/guide/configuration.html#aws-config-file)
+* Setup an AWS S3 bucket in the same region where you intend to deploy the bot
+* Setup AWS config including credentials of an IAM user that has access to the
+necessary AWS services as described 
+[here](http://boto3.readthedocs.io/en/latest/guide/configuration.html#aws-config-file)
 * Clone this repository: 
 `$ git clone https://github.com/shreepads/scribrbot.git`
 * In the repo directory create a Python 2.7 virtual environment:
@@ -40,7 +42,7 @@ AWS services as described [here](http://boto3.readthedocs.io/en/latest/guide/con
 * Install the necessary Python packages:
 `(venv) $ pip install -r requirements.txt`
 * Deploy the bot, providing a valid Telegram bot token:
-`(venv) $ deploy_scribrbot.py --telegram_token <insert token here>`
+`(venv) $ ./deploy_scribrbot.py --telegram_token <insert token here>`
 
 
 ## How to Use (under development)
