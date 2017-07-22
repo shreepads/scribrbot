@@ -1,0 +1,286 @@
+%YAML 1.1
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS CloudFormation Template that creates the ScribrBot API Gateways, Lambda Functions and DynamoDB tables.
+# Copyright (c) 2017 Shreepad Shukla
+
+Parameters: 
+  TelegramBotName: 
+    Description: Name of the Telegram Bot (default TestScribrBot).
+    Type: String
+    MaxLength : 10
+    MinLength : 6
+    ConstraintDescription : Required field (6-10 chars)
+    Default: TestScribrBot
+  TelegramBotToken:
+    Description : Telegram assigned token for the bot
+    Type : String
+    MaxLength : 100
+    MinLength : 6
+    ConstraintDescription : Required field (6-100 chars)
+  LambdaFunctionS3Bucket :
+    Description : S3 bucket name where the lambda function is stored - must be in the same region (default scribrbot)
+    Type : String
+    MaxLength : 100
+    MinLength : 6
+    ConstraintDescription : Required field (6-100 chars)
+    Default : scribrbot
+  LambdaFunctionS3Key:
+    Description : S3 key name that contains the lambda function package (default scribrbot.zip)
+    Type : String
+    MaxLength : 100
+    MinLength : 6
+    ConstraintDescription : Required field (6-100 chars)
+    Default : scribrbot.zip
+  RESTApiSpecS3Bucket:
+    Description : S3 bucket name where the REST API spec is stored (default scribrbot) 
+    Type : String
+    MaxLength : 100
+    MinLength : 6
+    ConstraintDescription : Required field (6-100 chars)
+    Default : scribrbot
+  RESTApiSpecS3Key : 
+    Description : S3 key name that contains the REST API spec in swagger YAML format (default scribrbotapi.yml)
+    Type : String
+    MaxLength : 100
+    MinLength : 6
+    ConstraintDescription : Required field (6-100 chars)
+    Default : scribrbotapi.yml
+  APIGatewayLimit :
+    Description : Overall limit on the number of requests to be handled by the API Gateway in a second (default 1)
+    Type : Number
+    Default : 1
+  APIGatewayStageName :
+    Description : Stage name for the API Gateway (default ScribrBotStage)
+    Type : String
+    MaxLength : 100
+    MinLength : 6
+    ConstraintDescription : Required field (6-100 chars)
+    Default : ScribrBotStage
+  
+
+
+Resources:
+
+  ScribrBotMessagesTable : 
+    Type : AWS::DynamoDB::Table
+    Properties : 
+     TableName : !Join [".", [ !Ref TelegramBotName, Messages ] ]
+     KeySchema : 
+       - 
+         AttributeName: ChatId
+         KeyType: HASH
+       -
+         AttributeName: UnixTimestamp
+         KeyType: RANGE
+     AttributeDefinitions : 
+       - 
+         AttributeName : ChatId
+         AttributeType : N
+       -
+         AttributeName : UnixTimestamp
+         AttributeType : N
+     ProvisionedThroughput : 
+       ReadCapacityUnits : 10
+       WriteCapacityUnits : 5
+
+  LambdaFunctionRole: 
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: 2012-10-17
+        Statement: 
+           - 
+            Effect: Allow
+            Principal: 
+              Service: 
+                - lambda.amazonaws.com
+            Action: 
+               - sts:AssumeRole
+      Path: "/"
+
+  DynamoDBQueryPutUpdateDeleteItemPolicy: 
+      Type: AWS::IAM::Policy
+      Properties: 
+        PolicyName: DynamoDBQueryPutUpdateDeleteItemPolicy
+        PolicyDocument: 
+          Version: 2012-10-17
+          Statement: 
+             - 
+              Effect: Allow
+              Action: 
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                  - dynamodb:Batch*
+                  - dynamodb:Describe*
+              Resource:
+                 !Join [ "", [ "arn:aws:dynamodb:", !Ref "AWS::Region" , ":", !Ref "AWS::AccountId" ,
+                   ":table/", !Ref "TelegramBotName", ".*" ] ] 
+        Roles: 
+           - 
+             !Ref LambdaFunctionRole     
+
+  CloudWatchCreateLogsPutMetricDataPolicy: 
+      Type: AWS::IAM::Policy
+      Properties: 
+        PolicyName: CloudWatchPutMetricDataPolicy
+        PolicyDocument: 
+          Version: 2012-10-17
+          Statement: 
+             - 
+              Effect: Allow
+              Action: 
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:DescribeLogGroups
+                  - logs:DescribeLogStreams
+                  - cloudwatch:PutMetricData
+              Resource: "*"
+        Roles: 
+           - 
+             !Ref LambdaFunctionRole     
+
+  ScribrBotLambdaFunction: 
+      Type: AWS::Lambda::Function
+      Properties: 
+        Handler: scribrbot.lambda_handler
+        Role: 
+          Fn::GetAtt: 
+             - "LambdaFunctionRole"
+             - "Arn"
+        Code: 
+          S3Bucket: !Ref LambdaFunctionS3Bucket
+          S3Key: !Ref LambdaFunctionS3Key
+        Runtime: "python2.7"
+        MemorySize : 128
+        Timeout: 3
+        Environment:
+          Variables:
+            TelegramBotToken : !Ref TelegramBotToken
+            MessageTableName : !Ref ScribrBotMessagesTable
+
+  ScribrBotRESTApi: 
+      Type: AWS::ApiGateway::RestApi
+      Properties: 
+        Description: ScribrBot API for handling webhooks from various messaging platforms
+        Name: ScribrBotAPI
+
+  ScribrBotRESTApiLambdaPermission:
+      Type: AWS::Lambda::Permission
+      Properties: 
+        Action: lambda:InvokeFunction
+        FunctionName: 
+          Fn::GetAtt: 
+             - "ScribrBotLambdaFunction"
+             - "Arn"
+        Principal: apigateway.amazonaws.com
+        SourceArn:
+          Fn::Join:
+             - ""
+             -
+               - "arn:aws:execute-api:"
+               - !Ref AWS::Region
+               - ":"
+               - !Ref AWS::AccountId
+               - ":"
+               - !Ref ScribrBotRESTApi
+               - "/*"
+  
+
+  ScribrBotTelegramMessageRESTModel:
+      Type: AWS::ApiGateway::Model
+      Properties:
+        Name: ScribrBotRESTModel
+        Description: REST model for ScribrBot API webhook
+        ContentType: "application/json"
+        RestApiId: !Ref ScribrBotRESTApi
+        Schema:
+          Fn::Join:
+             - ""
+             -
+               - "{"
+               - "   \"$schema\": \"http://json-schema.org/draft-04/schema#\","
+               - "   \"title\": \"ScribrBotTelegramMessageRESTModel\","
+               - "   \"type\": \"object\""
+               - "}"
+
+  ScribrBotTelegramMessageResource: 
+      Type: AWS::ApiGateway::Resource
+      Properties: 
+        RestApiId: !Ref ScribrBotRESTApi
+        ParentId: 
+          Fn::GetAtt:
+             - "ScribrBotRESTApi"
+             - "RootResourceId"
+        PathPart: "telegram"
+
+
+  ScribrBotTelegramMessagePostMethod: 
+      Type: AWS::ApiGateway::Method
+      Properties: 
+        RestApiId: !Ref ScribrBotRESTApi
+        ResourceId: !Ref ScribrBotTelegramMessageResource
+        HttpMethod: POST
+        AuthorizationType: NONE
+        MethodResponses: 
+           -
+            StatusCode: 200
+            ResponseModels:
+              "application/json": !Ref ScribrBotTelegramMessageRESTModel
+        Integration: 
+          Type: AWS
+          Uri: 
+            Fn::Join:
+               - ""
+               -
+                 - "arn:aws:apigateway:"
+                 - !Ref AWS::Region
+                 - ":lambda:path/2015-03-31/functions/"
+                 - Fn::GetAtt: 
+                   - ScribrBotLambdaFunction
+                   - Arn
+                 - "/invocations"
+          IntegrationHttpMethod: POST
+          PassthroughBehavior: WHEN_NO_MATCH
+          IntegrationResponses:
+             -
+              StatusCode: 200
+             
+  ScribrBotRESTApiDeployment: 
+      DependsOn: ScribrBotTelegramMessagePostMethod
+      Type: AWS::ApiGateway::Deployment
+      Properties: 
+        RestApiId: !Ref ScribrBotRESTApi
+        Description: ScribrBot REST Api endpoint deployment
+        StageName: !Ref APIGatewayStageName
+        StageDescription:
+          MethodSettings:
+             -
+              DataTraceEnabled: True
+              LoggingLevel: INFO
+              HttpMethod: "*"
+              ResourcePath: "/*"
+  
+Outputs:
+  URL:
+    Description: URL of the API Gateway invoke endpoint
+    Value:
+      Fn::Join:
+         - ""
+         -
+           - "https://"
+           - !Ref ScribrBotRESTApi
+           - ".execute-api."
+           - !Ref AWS::Region
+           - ".amazonaws.com/"
+           - !Ref APIGatewayStageName
+           - "/telegram"
+
+        
+
+
+
