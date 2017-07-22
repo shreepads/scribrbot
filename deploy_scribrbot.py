@@ -27,7 +27,8 @@ def package_deploy(lambda_s3bucket, bot_name):
     """
     
     zip_tld_files = 'scribrbot.py'    # files from the top level directory
-    zip_package_list = 'requests'    # folders from site-packages
+    zip_package_list = 'requests urllib3 certifi chardet idna jinja2 \
+        markupsafe'    # folders from site-packages
     
     # Construct platform specific zip commands
     zip_command = None
