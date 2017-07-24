@@ -10,6 +10,10 @@ ScribrBot runs on AWS, using Lambda, API Gateway, DynamoDB and S3. All of
 these resources are setup using a standard CloudFormation template that
 requires IAM access.
 
+A TestScribrBot instance is runing on a Telegram group. If you wish to test it
+and provide feedback please join the group from the Telegram app via this 
+[link](https://t.me/joinchat/AzvE-kSJWSeP5YAUJNQ0tA)
+
 
 ## Branches
 
@@ -22,6 +26,10 @@ with Telegram
 ### sprint1 branch
 * Discard all messages other than those with hashtags
 * Provide summarise command `\summ` to summarise messages by hashtag
+
+### sprint2 branch
+* Respond with error message if no messages in #hashtag to be summarised (Issue #10)
+* Greet new group joiners (Issue #6)
 
 
 ## How to Deploy
