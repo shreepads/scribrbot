@@ -173,10 +173,10 @@ def main():
     # Parse command line variables
     parser = argparse.ArgumentParser()
     parser.add_argument('--bot_name',
-        help='Name of the bot to be deployed (default TestScribrBotv1). Must be ' \
+        help='Name of the bot to be deployed (default TestScribrBotv2). Must be ' \
         'unique, 6 to 10 chars long and only contain numbers and uppercase/ ' \
         'lowercase letters',
-        default='TestScribrBotv1')
+        default='TestScribrBotv2')
     parser.add_argument('--telegram_token',
         help='Telegram API token for the bot. The webhook will be registered '\
         'and response messages sent using this. The API token for at least ' \
