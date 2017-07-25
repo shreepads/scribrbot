@@ -59,7 +59,7 @@ template = Template(templatestr)
 
 def lambda_handler(event, context):
     """
-    Main webhook handler. Figures out what to do, farms out and responds
+    Main webhook handler. Figure out what to do, farm out and return
     """
     # Log event, context details
     print('Event type:%s' % type(event))
@@ -74,21 +74,26 @@ def lambda_handler(event, context):
         print('No message element in event')
         return 'Nothing for me to do here'
         
-    if 'text' not in event['message']:
-        print('No text element in message')
+    if 'text' not in event['message']  and  'new_chat_members' not in event['message']:
+        print('No text or new chat members element in message')
         return 'Nothing for me to do here'
         
-    if 'entities' not in event['message']:
-        print('No entities element in message')
+    if 'entities' not in event['message']  and  'new_chat_members' not in event['message']:
+        print('No entities or new chat members element in message')
         return 'Nothing for me to do here'
     
     
     # Figure out if a command has been issued, execute the first one and return
-    for entity in event['message']['entities']:
-        if entity['type'] == 'bot_command':
-            executecommand(event['message'], entity)
-            return 'Jawohl mein fuhrer!'
+    if 'entities' in event['message']:
+        for entity in event['message']['entities']:
+            if entity['type'] == 'bot_command':
+                executecommand(event['message'], entity)
+                return 'Jawohl mein fuhrer!'
     
+    # Figure out if new members have joined the group and if so greet them
+    if 'new_chat_members' in event['message']:
+        greetNewMembers(event['message'])
+        return 'Welcome!'
     
     # Get set of hashtags from message and return if none
     hashtags = getHashtagsFromMessage(event['message'])
@@ -126,7 +131,7 @@ def lambda_handler(event, context):
 
 def getHashtagsFromMessage(message):
     """
-    Returns a set of hashtags contained in the Telegram message.
+    Return a set of hashtags contained in the Telegram message.
     """
     
     hashtags = set()
@@ -146,7 +151,7 @@ def getHashtagsFromMessage(message):
 
 def executecommand(message, bot_command_entity):
     """
-    Executes the bot command contained in the Telegram message.
+    Execute the bot command contained in the Telegram message.
     """
     
     responsemsg = ''
@@ -164,16 +169,16 @@ def executecommand(message, bot_command_entity):
 
         if not hashtags:
             print('No hashtags in summ message text: %s' % text)
-            responsemsg = 'Sorry I need a hashtag to summarise'
+            responsemsg = 'Sorry I need a #hashtag to summarise'
         else:
             summ_s3_url = generatesummary(chat_id, hashtags)
             if summ_s3_url:
                 responsemsg = 'Summary URL: {}'.format(summ_s3_url)
             else:
-                responsemsg = 'Sorry there are no messages with that hashtag.\n'
-                'This may be because messages with the hashtag were posted '
-                'before I joined the group, were posted long ago or the '
-                'group\'s id has changed since, for example because it was '
+                responsemsg = 'Sorry there are no messages with that hashtag.\n' \
+                'This may be because messages with the hashtag were posted '     \
+                'before I joined the group, were posted long ago or the '        \
+                'group\'s id has changed since, for example because it was '     \
                 'converted from a group to a supergroup.'
     
     if not responsemsg:
@@ -186,7 +191,7 @@ def executecommand(message, bot_command_entity):
 
 def generatesummary(chat_id, hashtags):
     """
-    Generates a summary for hashtags on the chat_id, stores on S3 and returns
+    Generate a summary for hashtags on the chat_id, store on S3 and return
     S3 url
     """
     
@@ -220,11 +225,36 @@ def generatesummary(chat_id, hashtags):
     s3_url = 'https://{0}.s3.amazonaws.com/{1}'.format(s3_bucket_name, s3_key)
     
     return s3_url
+
+
+def greetNewMembers(message):
+    """
+    Greet new members to the group.
+    """
     
+    newchatmembers = message['new_chat_members']
+    
+    if not newchatmembers:
+        print('No chat members to greet!')
+        return
+    
+    newmemberfirstnames = (newchatmember['first_name'] for newchatmember in newchatmembers)
+    
+    newmemberfirstnamesstr = ', '.join(newmemberfirstnames)
+    
+    greetingmsg = 'Hi {0}! I\'m the scribe for this group. I record all posted ' \
+    'messages with #hashtags and can generate a summary of the conversation by ' \
+    '#hashtag when requested.'.format(newmemberfirstnamesstr)
+    
+    chat_id = message['chat']['id']
+    
+    sendresponse(chat_id, greetingmsg)
+    return
+
 
 def sendresponse(chat_id, responsemsg):
     """
-    Sends the responsemsg on the chat_id.
+    Send the responsemsg on the chat_id.
     """
     
     sendresponse_url = \
