@@ -11,8 +11,9 @@ these resources are setup using a standard CloudFormation template that
 requires IAM access.
 
 A TestScribrBot instance is runing on a Telegram group. If you wish to test it
-and provide feedback please join the group from the Telegram app via this 
-[link](https://t.me/joinchat/AzvE-kSJWSeP5YAUJNQ0tA)
+and provide feedback please join the group by visiting this 
+[link](https://t.me/joinchat/AzvE-kSJWSeP5YAUJNQ0tA) from a mobile device where
+Telegram is installed.
 
 
 ## Branches
@@ -34,6 +35,8 @@ with Telegram
 
 ## How to Deploy
 
+* Create your own Telegram bot from within the Telegram app as described
+[here](https://core.telegram.org/bots#6-botfather)
 * Install Python 2.7 (or above), virtualenv, pip and git
 * Setup an AWS S3 bucket in the same region where you intend to deploy the bot
 * Setup AWS config including credentials of an IAM user that has access to the
@@ -47,7 +50,7 @@ necessary AWS services as described
 `$ source venv/bin/activate`
 * Install the necessary Python packages:
 `(venv) $ pip install -r requirements.txt`
-* Deploy the bot, providing a valid Telegram bot token:
+* Deploy the bot, providing the Telegram bot token obtained at the first step:
 `(venv) $ ./deploy_scribrbot.py --telegram_token <insert token here>`
 
 
