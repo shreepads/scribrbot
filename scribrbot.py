@@ -164,9 +164,17 @@ def executecommand(message, bot_command_entity):
 
         if not hashtags:
             print('No hashtags in summ message text: %s' % text)
+            responsemsg = 'Sorry I need a hashtag to summarise'
         else:
             summ_s3_url = generatesummary(chat_id, hashtags)
-            responsemsg = 'Summary URL: {}'.format(summ_s3_url)
+            if summ_s3_url:
+                responsemsg = 'Summary URL: {}'.format(summ_s3_url)
+            else:
+                responsemsg = 'Sorry there are no messages with that hashtag.\n'
+                'This may be because messages with the hashtag were posted '
+                'before I joined the group, were posted long ago or the '
+                'group\'s id has changed since, for example because it was '
+                'converted from a group to a supergroup.'
     
     if not responsemsg:
         responsemsg = 'Sorry I cannot handle that command'
@@ -182,12 +190,16 @@ def generatesummary(chat_id, hashtags):
     S3 url
     """
     
+    # There will be at least one hashtag when called from executecommand()
     hashtag = hashtags.pop()
     
     # Scan the table for all messages that contain the given hashtag
     scanresponse = message_table.scan(
         FilterExpression=Attr('Hashtags').contains(hashtag) & Attr('ChatId').eq(chat_id)
     )
+    
+    if not scanresponse['Count']:
+        return ''
     
     
     # Generate the HTML summary of the messages
