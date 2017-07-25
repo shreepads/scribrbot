@@ -184,8 +184,8 @@ def main():
         
     parser.add_argument('--templatefile',
         help='Filename of the CloudFormation template file. Default is ' \
-        './resources/CloudForm-ScribrBot.yaml',
-        default='./resources/CloudForm-ScribrBot.yaml')
+        './resources/cloudformtemplates/CloudForm-ScribrBot.yaml',
+        default='./resources/cloudformtemplates/CloudForm-ScribrBot.yaml')
     parser.add_argument('--lambda_s3bucket',
         help='Name of the S3 bucket where the bot lamdba function must be ' \
         'uploaded after packaging (default testscribrbot)',
