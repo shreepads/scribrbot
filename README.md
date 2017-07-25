@@ -32,6 +32,9 @@ with Telegram
 * Respond with error message if no messages in #hashtag to be summarised (Issue #10)
 * Greet new group joiners (Issue #6)
 
+### sprint3 branch
+* Separate summary page Jinja template from the bot package (Issue #1)
+* Provide basic CSS Grid layout for summary page (Issue #2)
 
 ## How to Deploy
 
