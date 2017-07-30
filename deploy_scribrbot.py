@@ -20,15 +20,15 @@ import platform
 import boto3
 import requests
 
-def package_deploy(lambda_s3bucket, bot_name):
+def package_deploy(s3bucket, bot_name):
     """
     Package the ScribrBot lambda function and deploy to the given S3 bucket
     using the bot_name as the key. 
     """
     
     zip_tld_files = 'scribrbot.py'    # files from the top level directory
-    zip_package_list = 'requests urllib3 certifi chardet idna jinja2 \
-        markupsafe'    # folders from site-packages
+    zip_package_list = 'requests urllib3 certifi chardet idna jinja2 ' \
+        'markupsafe'    # folders from site-packages
     
     # Construct platform specific zip commands
     zip_command = None
@@ -64,18 +64,34 @@ def package_deploy(lambda_s3bucket, bot_name):
     # Upload created ZIP package to S3
     print('Uploading ZIP package to S3')
     
-    s3 = boto3.resource('s3')
-    s3bucket = s3.Bucket(lambda_s3bucket)
+
     
     zip_filename = '{}.zip'.format(bot_name)
-    s3_key = 'code/{}'.format(zip_filename)
+    s3_key = 'resources/code/{}'.format(zip_filename)
 	
     s3bucket.put_object(Key=s3_key, Body=open(zip_filename, 'rb'))
     
     print('Uploaded ZIP package to S3 with key: %s' % s3_key)
         
     return s3_key
+
+
+def uploadresources(s3bucket):
+    """
+    Upload the neceassary /resources to the bucket with the appropriate
+    permissions. 
+    """
+    s3bucket.upload_file('resources/jinja2templates/summary.html', 
+        'resources/jinja2templates/summary.html')
     
+    s3bucket.upload_file('resources/css/summary.css', 
+        'resources/css/summary.css',
+        ExtraArgs={
+            'ACL': 'public-read',
+            'ContentType' : 'text/css'
+        }
+    )
+        
 
 def createstack(stackname, bot_name, telegram_token, lambda_s3bucket,
          s3bucket_key, templatedata):
@@ -186,9 +202,10 @@ def main():
         help='Filename of the CloudFormation template file. Default is ' \
         './resources/cloudformtemplates/CloudForm-ScribrBot.yaml',
         default='./resources/cloudformtemplates/CloudForm-ScribrBot.yaml')
-    parser.add_argument('--lambda_s3bucket',
-        help='Name of the S3 bucket where the bot lamdba function must be ' \
-        'uploaded after packaging (default testscribrbot)',
+    parser.add_argument('--s3bucket',
+        help='Name of the S3 bucket where the resources, including the bot ' \
+        'lamdba function, must be uploaded and the generated summaries stored ' \
+        ' (default testscribrbot)',
         default='testscribrbot')
     parser.add_argument('--s3bucket_key',
         help='S3 bucket key where the bot lamdba function has already been ' \
@@ -201,24 +218,32 @@ def main():
     if (not args.telegram_token):
         print("Telegram bot token is required to proceed. See deploy_scribrbot.py --help for details")
         return
+
+    # Get the s3 bucket resource
+    s3 = boto3.resource('s3')
+    s3bucket = s3.Bucket(args.s3bucket)
     
+    # Package the bot lamdba function and deploy to S3 if s3bucket_key not provided
+    s3bucket_key = None
+        
+    if (args.s3bucket_key):
+        s3bucket_key = args.s3bucket_key
+    else:
+        s3bucket_key = package_deploy(s3bucket, args.bot_name)
+
+    
+    # Upload the ncessary /resources to the bucket
+    uploadresources(s3bucket)
+    
+    # Create the stack
     # Load the template data
     f = open(args.templatefile)
     templatedata = f.read()
     f.close()
     
-    s3bucket_key = None
-    
-    # Package the bot lamdba function and deploy to S3 if s3bucket_key not provided
-    if (args.s3bucket_key):
-        s3bucket_key = args.s3bucket_key
-    else:
-        s3bucket_key = package_deploy(args.lambda_s3bucket, args.bot_name)
-    
     stackname = 'ScribrBotStack-' + args.bot_name
     
-    # Create the stack
-    apig_url = createstack(stackname, args.bot_name, args.telegram_token, args.lambda_s3bucket,
+    apig_url = createstack(stackname, args.bot_name, args.telegram_token, args.s3bucket,
          s3bucket_key, templatedata)
     
     # Register the webhook
