@@ -35,6 +35,7 @@ with Telegram
 ### sprint3 branch
 * Separate summary page Jinja template from the bot package (Issue #1)
 * Provide basic CSS Grid layout for summary page (Issue #2)
+* Ignore messages more than 'n' chars long (Issue #18)
 
 ## How to Deploy
 
@@ -53,8 +54,9 @@ necessary AWS services as described
 `$ source venv/bin/activate`
 * Install the necessary Python packages:
 `(venv) $ pip install -r requirements.txt`
-* Deploy the bot, providing the Telegram bot token obtained at the first step:
-`(venv) $ ./deploy_scribrbot.py --telegram_token <insert token here>`
+* Deploy the bot, providing the Telegram bot token obtained at the first step
+and the name of the S3 bucket created at the third step:
+`(venv) $ ./deploy_scribrbot.py --telegram_token <insert token here> --s3bucket <s3 bucket name>`
 
 
 ## How to Use (under development)
