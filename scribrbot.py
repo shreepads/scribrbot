@@ -37,23 +37,12 @@ s3bucket = s3.Bucket(s3_bucket_name)
 
 
 # Setup Jinja2 template
-templatestr = """
-        <!DOCTYPE html>
-        <html>
-            <body>
-                <table>
-                     {% for item in items %}
-                     <tr>
-                          <td> {{ item['UserFirstName'] }} </td>
-                          <td> {{ item['Text'] }}         </td>
-                          {% set ctime = datetime.fromtimestamp(int(item['UnixTimestamp'])).ctime() %}
-                          <td> {{ ctime }} </td>
-                     </tr>
-                     {% endfor %}
-                </table>
-            </body>
-        </html>"""
-template = Template(templatestr)
+summary_j2template_s3key = 'resources/jinja2templates/summary.html'
+summary_j2template_objresp = s3bucket.Object(summary_j2template_s3key).get()
+summary_j2templatestr = summary_j2template_objresp['Body'].read()
+print("Got summary jinja2 template: %s" % summary_j2templatestr)
+
+summary_j2template = Template(summary_j2templatestr)
 
 
 
@@ -208,7 +197,7 @@ def generatesummary(chat_id, hashtags):
     
     
     # Generate the HTML summary of the messages
-    htmlsummary = template.render(
+    htmlsummary = summary_j2template.render(
         items=scanresponse['Items'], 
         datetime=datetime, int=int
     )
@@ -219,7 +208,7 @@ def generatesummary(chat_id, hashtags):
         Key=s3_key, 
         Body=htmlsummary.encode('utf8'),
         ACL='public-read',
-        ContentType='text/html; charset=utf-8'
+        ContentType='text/html'
     )
     
     s3_url = 'https://{0}.s3.amazonaws.com/{1}'.format(s3_bucket_name, s3_key)
