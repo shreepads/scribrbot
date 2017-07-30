@@ -84,6 +84,11 @@ def lambda_handler(event, context):
         greetNewMembers(event['message'])
         return 'Welcome!'
     
+    # Check if message text too long and ignore if so
+    if len(event['message']['text']) > 500:
+        print('Message text too long, not storing')
+        return 'Nothing for me to do here' 
+    
     # Get set of hashtags from message and return if none
     hashtags = getHashtagsFromMessage(event['message'])
     
