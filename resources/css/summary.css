@@ -50,7 +50,7 @@ table {
   grid-template-areas: "message message" "username posttime";
 }
 
-@media only screen and (min-width: 800px) {
+@media only screen and (min-width: 800px) and (min-device-width: 800px) {
   .wrapper {
     margin: 5px;
 
