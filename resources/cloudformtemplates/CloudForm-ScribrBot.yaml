@@ -130,10 +130,10 @@ Resources:
            - 
              !Ref LambdaFunctionRole     
 
-  S3PutObjectPolicy:
+  S3PutGetObjectPolicy:
       Type: AWS::IAM::Policy
       Properties: 
-        PolicyName: S3PutObjectPolicy
+        PolicyName: S3PutGetObjectPolicy
         PolicyDocument: 
           Version: 2012-10-17
           Statement: 
@@ -143,6 +143,7 @@ Resources:
                   - s3:PutObject
                   - s3:PutObjectAcl
                   - s3:PutObjectTagging
+                  - s3:GetObject
               Resource:
                  !Join [ "", [ "arn:aws:s3:::", !Ref LambdaFunctionS3Bucket, "/*" ] ] 
         Roles: 
